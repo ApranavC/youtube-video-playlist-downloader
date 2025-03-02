@@ -81,6 +81,40 @@ class YouTubeDownloaderGUI:
         self.signature_label = tk.Label(root, text="Made by: Psycho Coder", fg="gray", font=("Arial", 15, "italic"))
         self.signature_label.place(relx=1.0, rely=1.0, anchor="se", x=-10, y=-10)  # Bottom-right corner
 
+        # 🔹 Download as Sequence Button (Initially Hidden)
+        self.download_sequence_button = ttk.Button(root, text="📥 Download as Sequence", command=self.start_sequential_download)
+        self.download_sequence_button.pack(pady=10)
+        self.download_sequence_button.pack_forget()  # Hide initially
+
+
+    def start_sequential_download(self):
+        self.download_sequence_button.config(state="disabled")  # Disable while downloading
+
+        def download_next(index):
+            if index >= len(self.video_widgets):  # Stop when all videos are done
+                self.download_sequence_button.config(state="normal")  # Re-enable when finished
+                return
+
+            video_data = self.video_widgets[index]
+            video = video_data["video"]
+            progress_label = video_data["progress"]
+
+            progress_label.config(text="Starting...")
+
+            def update_progress(progress_text):
+                progress_label.config(text=progress_text)
+
+            def on_download_complete():
+                progress_label.config(text="Completed")
+                download_next(index + 1)  # Start the next video after completion
+
+            self.downloader.set_progress_callback(index, update_progress)
+
+            selected_quality = self.quality_var.get().replace("p", "")
+            
+            threading.Thread(target=self.run_download, args=(video['url'], index, selected_quality, on_download_complete)).start()
+
+        download_next(0)  # Start downloading from the first video
 
     def search_videos(self):
         playlist_url = self.url_entry.get()
@@ -121,6 +155,7 @@ class YouTubeDownloaderGUI:
 
                 self.video_widgets.append({"progress": progress_label, "video": video, "button": download_button})
 
+            self.download_sequence_button.pack()
         threading.Thread(target=self.downloader.download_playlist, args=(playlist_url, update_ui)).start()
 
     def start_download(self, video, index, progress_label):

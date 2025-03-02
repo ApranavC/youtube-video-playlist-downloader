@@ -4,6 +4,7 @@ import threading
 class YouTubeDownloader:
     def __init__(self):
         self.progress_callbacks = {}
+        self.playlist_name = None
 
     def get_video_qualities(self, video_url):
         try:
@@ -49,10 +50,12 @@ class YouTubeDownloader:
         quality_options = self.get_video_qualities(video_url)
         selected_format_id = next((q[1] for q in quality_options if q[0] == quality), None)
 
+        folder_output = self.playlist_name if self.playlist_name else 'Unknown_Playlist'
+
         ydl_opts = {
             'format': selected_format_id if selected_format_id else 'best',
             'merge_output_format': 'mp4',
-            'outtmpl': '%(title)s.%(ext)s',
+            'outtmpl': f'Downloads/{folder_output}/%(title)s.%(ext)s',
             'progress_hooks': [progress_hook],
             'noplaylist': True,
         }
@@ -60,12 +63,44 @@ class YouTubeDownloader:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([video_url])
 
+
+    def start_sequential_download(self):
+        self.download_sequence_button.config(state="disabled")  # Disable while downloading
+
+        def download_next(index):
+            if index >= len(self.video_widgets):  # Stop if all videos are done
+                self.download_sequence_button.config(state="normal")  # Re-enable after completion
+                return
+
+            video_data = self.video_widgets[index]
+            video = video_data["video"]
+            progress_label = video_data["progress"]
+
+            progress_label.config(text="Starting...")
+
+            def update_progress(progress_text):
+                progress_label.config(text=progress_text)
+
+            def on_download_complete():
+                progress_label.config(text="Completed")
+                download_next(index + 1)  # Start the next video after completion
+
+            self.downloader.set_progress_callback(index, update_progress)
+
+            selected_quality = self.quality_var.get().replace("p", "")
+            
+            threading.Thread(target=self.run_download, args=(video['url'], index, selected_quality, on_download_complete)).start()
+
+        download_next(0)  # Start from the first video
+
     def download_playlist(self, playlist_url, update_ui_callback):
         """ Fetch playlist details and update UI with video titles """
 
         try:
             with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
                 playlist_info = ydl.extract_info(playlist_url, download=False)
+                playlist_name = playlist_info.get('title', 'Unknown_Playlist')  # Get playlist title
+                self.playlist_name = playlist_name
 
             videos = [{'title': vid['title'], 'url': vid['webpage_url']} for vid in playlist_info.get('entries', [])]
             update_ui_callback(videos)
