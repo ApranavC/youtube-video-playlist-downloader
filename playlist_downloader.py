@@ -53,7 +53,7 @@ class YouTubeDownloader:
         folder_output = self.playlist_name if self.playlist_name else 'Unknown_Playlist'
 
         ydl_opts = {
-            'format': selected_format_id if selected_format_id else 'best',
+            'format': f"{selected_format_id}+bestaudio/best" if selected_format_id else 'bestvideo+bestaudio/best',
             'merge_output_format': 'mp4',
             'outtmpl': f'Downloads/{folder_output}/%(title)s.%(ext)s',
             'progress_hooks': [progress_hook],
