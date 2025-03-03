@@ -93,16 +93,36 @@ class YouTubeDownloader:
 
         download_next(0)  # Start from the first video
 
+
     def download_playlist(self, playlist_url, update_ui_callback):
-        """ Fetch playlist details and update UI with video titles """
-
+        ydl_opts = {
+            'quiet': True,
+            'ignoreerrors': True,   # Ignore errors (like private videos)
+        }
         try:
-            with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 playlist_info = ydl.extract_info(playlist_url, download=False)
-                playlist_name = playlist_info.get('title', 'Unknown_Playlist')  # Get playlist title
-                self.playlist_name = playlist_name
 
-            videos = [{'title': vid['title'], 'url': vid['webpage_url']} for vid in playlist_info.get('entries', [])]
+            self.playlist_name = playlist_info.get('title', 'Unknown_Playlist')  # Get playlist title
+
+            videos = []
+            for vid in playlist_info.get('entries', []):
+                if vid is None:
+                    print("Skipping private or unavailable video in playlist.")
+                    continue
+                
+                video_url = vid.get('webpage_url')
+                video_title = vid.get('title')
+
+                if video_url and video_title:
+                    videos.append({'title': video_title, 'url': video_url})
+                else:
+                    print("Skipping private or unavailable video in playlist.")
+
+            if not videos:
+                print("No valid videos found in playlist!")
+
             update_ui_callback(videos)
-        except Exception:
+        except Exception as e:
+            print(f"Error processing playlist: {e}")
             update_ui_callback([])
