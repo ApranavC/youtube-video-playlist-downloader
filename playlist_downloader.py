@@ -96,7 +96,6 @@ class YouTubeDownloader:
 
     def download_playlist(self, playlist_url, update_ui_callback):
         ydl_opts = {
-            'quiet': True,
             'ignoreerrors': True,   # Ignore errors (like private videos)
         }
         try:
