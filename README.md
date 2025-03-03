@@ -61,7 +61,7 @@ python gui.py
 ```
 The following UI will open
 
-![Preview of the Downloader](screenshots/1.png)
+![Preview of the Downloader](screenshots/1.PNG)
 
 ### 2️⃣ Enter YouTube playlist URL
 Enter playlist url and click on search button.
@@ -69,13 +69,13 @@ The program will automatically fetch details and display available video qualiti
 
 **When you click on search button, the process may take some time depending upon your number of videos in a playlist. So you may have to give some time so script can get info of all videos. For instance, normal playlist with apprxox 30-40 videos, it will take 2-3 mints to process all videos.**
 
-![Preview of the Downloader](screenshots/2.png)
+![Preview of the Downloader](screenshots/2.PNG)
 
 
 ### 3️⃣ Choose the resolution
 After sometime, you will get all videos of playlist in area. Select the desired quality you want to download video in from dropdown.
 
-![Preview of the Downloader](screenshots/3.png)
+![Preview of the Downloader](screenshots/3.PNG)
 
 
 ### 4️⃣ Start downloading
