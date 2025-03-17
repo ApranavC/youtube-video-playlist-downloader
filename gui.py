@@ -1,184 +1,138 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, Menu
 import threading
 from playlist_downloader import YouTubeDownloader
-from tkinter import Menu
 from tkinter.messagebox import showinfo
 import webbrowser
 
 class YouTubeDownloaderGUI:
-    def aboutSoftware(self):
-        print("This is a software that downloads youtube videos")
-        showinfo("About", "This is a software that downloads youtube videos\nDeveloper: Psycho Coder")
+    def about_software(self):
+        showinfo("About", "YouTube Playlist Downloader\nDeveloper: Your Name")
 
-    def openMoreSoftwares(self):
-        webbrowser.open("https://github.com/itspsychocoder/")
-        
+    def open_profile(self):
+        webbrowser.open("https://your-profile-link.com")  # Replace with your profile
+
     def __init__(self, root):
         self.root = root
-        self.root.title("🎬 TubeFetch - YouTube Downloader")
-        self.root.geometry("850x550")
-        self.root.configure(bg="#2C2F33")
+        self.root.title("TubeFetch - YouTube Downloader")
+        self.root.geometry("900x600")
+        self.root.configure(bg="#1E1E1E")  # Dark Theme
 
-        
         self.downloader = YouTubeDownloader()
 
-        # 🔹 Title
-        title_label = tk.Label(root, text="YouTube Playlist Downloader", font=("Arial", 18, "bold"), bg="#2C2F33", fg="white")
-        title_label.pack(pady=10)
+        # Title Bar
+        title_frame = tk.Frame(root, bg="#252525", pady=10)
+        title_frame.pack(fill=tk.X)
+        title_label = tk.Label(title_frame, text="🎬 TubeFetch - YouTube Playlist Downloader",
+                               font=("Arial", 18, "bold"), bg="#252525", fg="white")
+        title_label.pack()
 
+        # Input Frame
+        input_frame = tk.Frame(root, bg="#1E1E1E")
+        input_frame.pack(pady=15)
 
-
-        # 🔹 Input Frame
-        input_frame = tk.Frame(root, bg="#2C2F33")
-        input_frame.pack(pady=5)
-
-        self.quality_label = tk.Label(input_frame, text="Step 1: Enter Playlist URL")
-        self.quality_label.grid(row=0, column=0, padx=10, pady=5)
-
-        self.url_entry = ttk.Entry(input_frame, width=55)
+        tk.Label(input_frame, text="🔗 Enter YouTube URL:", bg="#1E1E1E", fg="white", font=("Arial", 12)).grid(row=0, column=0, padx=10, pady=5)
+        self.url_entry = ttk.Entry(input_frame, width=50)
         self.url_entry.grid(row=0, column=1, padx=10, pady=5)
-
-        self.search_button = ttk.Button(input_frame, text="🔍 Search", command=self.search_videos)
+        self.search_button = ttk.Button(input_frame, text="Search", command=self.search_videos)
         self.search_button.grid(row=0, column=2, padx=5)
 
-        self.quality_label = tk.Label(input_frame, text="Step 2: Select Quality")
-        self.quality_label.grid(row=1, column=0, padx=10, pady=5)
+        # Progress Label (Fixed)
+        self.progress_label = tk.Label(root, text="Waiting for search...", bg="#1E1E1E", fg="yellow", font=("Arial", 12))
+        self.progress_label.pack(pady=10)
 
-        self.quality_var = tk.StringVar()
-        self.quality_dropdown = ttk.Combobox(input_frame, textvariable=self.quality_var, state="readonly")
-        self.quality_dropdown.grid(row=1, column=1, padx=5, pady=5)
+        # Video List Table (Treeview)
+        self.tree_frame = tk.Frame(root, bg="#1E1E1E")
+        self.tree_frame.pack(pady=10, fill=tk.BOTH, expand=True)
 
-        mainMenu = Menu()
+        columns = ("#", "Title", "Status")
+        self.video_tree = ttk.Treeview(self.tree_frame, columns=columns, show="headings", height=10)
+        self.video_tree.heading("#", text="#")
+        self.video_tree.heading("Title", text="Video Title")
+        self.video_tree.heading("Status", text="Status")
 
-        fileMenu = Menu(mainMenu, tearoff=0)
-        fileMenu.add_command(label="About Software", command=self.aboutSoftware)
-        fileMenu.add_command(label="Visit Website", command=self.openMoreSoftwares)
+        self.video_tree.column("#", width=50, anchor=tk.CENTER)
+        self.video_tree.column("Title", width=500, anchor=tk.W)
+        self.video_tree.column("Status", width=150, anchor=tk.CENTER)
 
-        mainMenu.add_cascade(label="About", menu=fileMenu)
-        root.config(menu=mainMenu)
+        self.video_tree.pack(fill=tk.BOTH, expand=True)
 
-        # 🔹 Video List Frame
-        self.video_frame = tk.Frame(root, bg="#23272A", bd=2, relief="sunken")
-        self.video_frame.pack(pady=10, fill=tk.BOTH, expand=True)
+        # Log Box (For Real-time Updates)
+        self.log_box = tk.Text(root, height=6, bg="black", fg="white", font=("Arial", 10))
+        self.log_box.pack(pady=5, fill=tk.BOTH, expand=False)
 
-        self.canvas = tk.Canvas(self.video_frame, bg="#23272A")
-        self.scrollbar = ttk.Scrollbar(self.video_frame, orient=tk.VERTICAL, command=self.canvas.yview)
-        self.scrollable_frame = tk.Frame(self.canvas, bg="#23272A")
+        # Progress Bar
+        self.progress_var = tk.DoubleVar()
+        self.progress_bar = ttk.Progressbar(root, length=300, mode='determinate', variable=self.progress_var)
+        self.progress_bar.pack(pady=5)
 
-        self.scrollable_frame.bind(
-            "<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        )
+        # Download Button (Initially Disabled)
+        self.download_button = ttk.Button(root, text="Download", command=self.start_download, state=tk.DISABLED)
+        self.download_button.pack(pady=10)
 
-        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        # Footer
+        footer_label = tk.Label(root, text="© 2024 TubeFetch | Developed by Your Name",
+                                bg="#1E1E1E", fg="gray", font=("Arial", 10, "italic"))
+        footer_label.pack(side=tk.BOTTOM, pady=5)
 
-        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.video_widgets = []
-
-        self.signature_label = tk.Label(root, text="Made by: Psycho Coder", fg="gray", font=("Arial", 15, "italic"))
-        self.signature_label.place(relx=1.0, rely=1.0, anchor="se", x=-10, y=-10)  # Bottom-right corner
-
-        # 🔹 Download as Sequence Button (Initially Hidden)
-        self.download_sequence_button = ttk.Button(root, text="📥 Download as Sequence", command=self.start_sequential_download)
-        self.download_sequence_button.pack(pady=10)
-        self.download_sequence_button.pack_forget()  # Hide initially
-
-
-    def start_sequential_download(self):
-        self.download_sequence_button.config(state="disabled")  # Disable while downloading
-
-        def download_next(index):
-            if index >= len(self.video_widgets):  # Stop when all videos are done
-                self.download_sequence_button.config(state="normal")  # Re-enable when finished
-                return
-
-            video_data = self.video_widgets[index]
-            video = video_data["video"]
-            progress_label = video_data["progress"]
-
-            progress_label.config(text="Starting...")
-
-            def update_progress(progress_text):
-                progress_label.config(text=progress_text)
-
-            def on_download_complete():
-                progress_label.config(text="Completed")
-                download_next(index + 1)  # Start the next video after completion
-
-            self.downloader.set_progress_callback(index, update_progress)
-
-            selected_quality = self.quality_var.get().replace("p", "")
-            
-            threading.Thread(target=self.run_download, args=(video['url'], index, selected_quality, on_download_complete)).start()
-
-        download_next(0)  # Start downloading from the first video
+    def log_message(self, message):
+        """ Update the log box with new messages """
+        self.log_box.insert(tk.END, message + "\n")
+        self.log_box.see(tk.END)
 
     def search_videos(self):
+        """ Searches for videos and updates UI with real-time logs """
         playlist_url = self.url_entry.get()
         if not playlist_url:
+            self.progress_label.config(text="⚠️ Please enter a YouTube URL!", fg="red")
             return
+
+        self.progress_label.config(text="🔍 Searching...", fg="yellow")
+        self.video_tree.delete(*self.video_tree.get_children())  # Clear previous search results
+        self.progress_var.set(0)
+        self.log_box.delete("1.0", tk.END)  # Clear logs
 
         def update_ui(videos):
             if not videos:
+                self.progress_label.config(text="⚠️ No videos found!", fg="red")
                 return
 
-            # Get quality options for the first video
-            quality_options = self.downloader.get_video_qualities(videos[0]['url'])
-            if quality_options:
-                self.quality_dropdown['values'] = [q[0] + "p" for q in quality_options]
-                self.quality_var.set(self.quality_dropdown['values'][0])  # Set default
+            self.videos = videos  # Store video data for download
+            self.progress_label.config(text=f"✅ Found {len(videos)} video(s)", fg="green")
 
-            # Populate videos in UI (existing logic)
-            for widget in self.scrollable_frame.winfo_children():
-                widget.destroy()
+            for index, video in enumerate(videos, start=1):
+                self.video_tree.insert("", "end", values=(index, video['title'], "Waiting"))
+                self.log_message(f"📜 Found video {index}/{len(videos)}: {video['title']}")
 
-            self.video_widgets.clear()
+            self.download_button.config(state=tk.NORMAL)  # Enable Download Button
 
-            for index, video in enumerate(videos):
-                frame = tk.Frame(self.scrollable_frame, borderwidth=1, relief="solid", padx=5, pady=5)
-                frame.pack(fill="x", pady=2)
-
-                title_label = tk.Label(frame, text=video['title'], anchor="w")
-                title_label.pack(side="left", padx=5, fill="x", expand=True)
-
-                progress_label = tk.Label(frame, text="Not Started", width=25)
-                progress_label.pack(side="left", padx=5)
-
-                download_button = tk.Button(
-                    frame, text="Download", 
-                    command=lambda v=video, i=index, pl=progress_label: self.start_download(v, i, pl)
-                )
-                download_button.pack(side="right", padx=5)
-
-                self.video_widgets.append({"progress": progress_label, "video": video, "button": download_button})
-
-            self.download_sequence_button.pack()
         threading.Thread(target=self.downloader.download_playlist, args=(playlist_url, update_ui)).start()
 
-    def start_download(self, video, index, progress_label):
-        progress_label.config(text="Starting...")
+    def start_download(self):
+        """ Starts downloading videos and updates UI accordingly """
+        self.progress_label.config(text="Starting download...", fg="yellow")
+        self.progress_var.set(0)
+        self.log_box.delete("1.0", tk.END)
 
-        def update_progress(progress_text):
-            progress_label.config(text=progress_text)
+        def update_progress(index, progress_text, progress_value):
+            """ Updates UI with download progress """
+            item_id = self.video_tree.get_children()[index]
+            self.video_tree.item(item_id, values=(index + 1, self.videos[index]['title'], progress_text))
 
-        def on_download_complete():
-            progress_label.config(text="Completed")
+            self.progress_var.set(progress_value)
+            self.log_message(f"⬇️ Downloading [{index+1}/{len(self.videos)}]: {self.videos[index]['title']} - {progress_text}")
 
-        self.downloader.set_progress_callback(index, update_progress)
+        def on_complete():
+            self.progress_label.config(text="✅ Download Completed!", fg="green")
+            self.progress_var.set(100)
+            self.log_message("✅ All downloads complete!")
 
-        # Get the selected quality
-        selected_quality = self.quality_var.get().replace("p", "")
+        total_videos = len(self.videos)
         
-        thread = threading.Thread(target=self.run_download, args=(video['url'], index, selected_quality, on_download_complete))
-        thread.start()
+        for index, video in enumerate(self.videos):
+            self.downloader.set_progress_callback(index, lambda text, idx=index: update_progress(idx, text, (idx + 1) / total_videos * 100))
 
-
-    def run_download(self, video_url, index, quality, on_complete):
-        self.downloader.download_video(video_url, index, quality)
-        self.root.after(100, on_complete)
+        threading.Thread(target=self.downloader.start_playlist_download, args=(self.videos,)).start()
 
 if __name__ == "__main__":
     root = tk.Tk()
